@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Elliot Schot - 2020
+# Elliot Schot - 2023
 
 # Script aimed to help pass a disk directly to a VM
 
-varversion=1.0
+varversion=1.1
 #V1.0: Initial Release - proof of concept
 
 # USAGE
@@ -15,48 +15,52 @@ varversion=1.0
 # ./onboard-gpu-passthrough.sh
 
 echo "----------------------------------------------------------------"
-echo "Elliot Schot - 2020"
+echo "Elliot Schot - 2023"
 echo "Proxmox Onboard GPU Passthrough"
 echo "----------------------------------------------------------------"
 
-# TODO: Check bootloader type grub vs systemd-boot (it currently only supports system boot
-echo "FOR systemd-boot only. If not using systemd-boot please ctrl + c now"
-read -p "Press enter to continue"
+# Check if the 'efibootmgr' command is available
+if efibootmgr -v &> /dev/null && efibootmgr | grep "Linux Boot Manager" &> /dev/null; then
+    echo "systemd-boot bootloader found."
+    # Add lines to systemd-boot
+    echo " intel_iommu=on iommu=pt i915.enable_gvt=1" >> /etc/kernel/cmdline
+    echo "enabled IOMMU & Inel GVT-g"
 
-# Add lines to systemd-boot
-echo " intel_iommu=on i915.enable_gvt=1" >> /etc/kernel/cmdline
-echo "enabled IOMMU & Inel GVT-g"
+    echo "Output from /etc/kernel/cmdline"
+    cat /etc/kernel/cmdline
+    read -p "Press enter to continue"
 
-echo "Output from /etc/kernel/cmdline"
-cat /etc/kernel/cmdline
-read -p "Press enter to continue"
+    # Add Kernel Modules (for /etc/modules)
+    echo "
+    # Modules required for PCI passthrough
+    vfio
+    vfio_iommu_type1
+    vfio_pci
+    vfio_virqfd
 
-# Add Kernel Modules (for /etc/modules)
-echo "
-# Modules required for PCI passthrough
-vfio
-vfio_iommu_type1
-vfio_pci
-vfio_virqfd
+    # Modules required for Intel GVT
+    kvmgt
+    xengt
+    vfio-mdev
+    " >> /etc/modules
 
-# Modules required for Intel GVT
-kvmgt
-xengt
-vfio-mdev
-" >> /etc/modules
+    echo "Output from /etc/modules"
+    cat /etc/modules
 
-echo "Output from /etc/modules"
-cat /etc/modules
+    read -p "Press enter to continue"
 
-read -p "Press enter to continue"
+    echo "Added Kernel Modules"
 
-echo "Added Kernel Modules"
+    # Refresh initramfs
+    update-initramfs -u -k all
 
-# Refresh initramfs
-update-initramfs -u -k all
+    echo "Refreshed Iitramfs"
 
-echo "Refreshed Iitramfs"
-
-# Reboot
-read -p "Press enter to reboot"
-reboot
+    # Reboot
+    read -p "Press enter to reboot"
+    reboot
+else
+    echo "Error: invalid bootloader not found."
+    echo "FOR systemd-boot only. If not using systemd-boot please ctrl + c now"
+    read -p "Press enter to exit..."
+fi
