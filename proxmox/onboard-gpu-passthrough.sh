@@ -41,7 +41,7 @@ vfio_virqfd
 
 # Modules required for Intel GVT
 kvmgt
-exngt
+xengt
 vfio-mdev
 " >> /etc/modules
 
