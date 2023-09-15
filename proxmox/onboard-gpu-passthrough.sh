@@ -19,7 +19,7 @@ echo "Elliot Schot - 2023"
 echo "Proxmox Onboard GPU Passthrough"
 echo "----------------------------------------------------------------"
 
-# Check if the 'efibootmgr' command is available
+# This should only pass if we are using both UEFI mode and systemd-boot (ie UEFI & ZFS) - Source: https://pve.proxmox.com/wiki/Host_Bootloader#sysboot_determine_bootloader_used
 if efibootmgr -v &> /dev/null && efibootmgr | grep "Linux Boot Manager" &> /dev/null; then
     echo "systemd-boot bootloader found."
     # Add lines to systemd-boot
@@ -60,6 +60,7 @@ if efibootmgr -v &> /dev/null && efibootmgr | grep "Linux Boot Manager" &> /dev/
     read -p "Press enter to reboot"
     reboot
 else
+    # TODO Add support for grub
     echo "Error: invalid bootloader not found."
     echo "FOR systemd-boot only. If not using systemd-boot please ctrl + c now"
     read -p "Press enter to exit..."
